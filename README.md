@@ -18,7 +18,7 @@ _Note_: This provider it's in a very early state so only few table engines are a
 
 1. Clone the repository
 1. Enter the repository directory
-1. Build the provider using the Go `install` command: 
+1. Build the provider using the Go `install` command:
 ```sh
 $ go install
 ```

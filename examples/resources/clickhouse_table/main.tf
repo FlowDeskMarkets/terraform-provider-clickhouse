@@ -37,12 +37,12 @@ resource "clickhouse_table" "replicated_table" {
     name = "title"
     type = "String"
   }
-  
+
   settings = {
     kafka_thread_per_consumer = 1
     kafka_num_consumers = 8
   }
-  
+
 }
 */
 

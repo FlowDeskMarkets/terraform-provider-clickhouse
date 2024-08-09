@@ -60,7 +60,7 @@ func tableConfigWithName(database string, tableName string) string {
 		name = "%_database_%"
 		comment = "this is a comment"
 	}
-	
+
 	resource "clickhouse_table" "table" {
 		database = clickhouse_db.new_db_resource.name
 		name = "%_tableName_%"

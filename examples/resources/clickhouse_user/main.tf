@@ -33,5 +33,3 @@ resource "clickhouse_user" "awesome_user" {
   password = "awesome_user_password"
   roles    = [clickhouse_role.awesome_role_1.name, clickhouse_role.awesome_role_2.name]
 }
-
-

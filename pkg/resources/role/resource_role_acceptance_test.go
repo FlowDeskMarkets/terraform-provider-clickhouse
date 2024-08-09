@@ -144,7 +144,7 @@ func generateTestSteps(testStepsData []TestStepData) []resource.TestStep {
 	for _, testStepData := range testStepsData {
 		var databaseRegex *regexp.Regexp
 		if testStepData.database == "*" {
-			databaseRegex = regexp.MustCompile("\\*")
+			databaseRegex = regexp.MustCompile(`\*`)
 		} else {
 			databaseRegex = regexp.MustCompile(testStepData.database)
 		}
@@ -224,7 +224,7 @@ func TestAccResourceRole(t *testing.T) {
 					databaseName1,
 					common.Quote([]string{"REMOTE"}),
 				),
-				ExpectError: regexp.MustCompile("Global privilege REMOTE is only allowed for database '\\*'"),
+				ExpectError: regexp.MustCompile(`Global privilege REMOTE is only allowed for database '\\*'`),
 			},
 		},
 	})

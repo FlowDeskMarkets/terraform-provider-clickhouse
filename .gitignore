@@ -1,5 +1,3 @@
-.envs
-
 *.dll
 *.exe
 .DS_Store
@@ -36,6 +34,20 @@ website/vendor
 *.winfile eol=crlf
 
 .env
+.envs
 **/.terraform.lock.hcl
 
 /examples/resources/schema_migrations/**
+
+# setup
+Brewfile.lock.json
+
+# local files
+clickhouse
+config.d
+metadata
+.access
+status
+uuid
+terraform-provider-clickhouse
+preprocessed_configs/

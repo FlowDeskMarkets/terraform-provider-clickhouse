@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"os"
 
@@ -108,13 +107,11 @@ func New(version string) func() *schema.Provider {
 }
 
 func getEnvVar(envVarName string) (any, error) {
-
-	godotenv.Load(".env")
+	_ = godotenv.Load(".env")
 	if v := os.Getenv(envVarName); v != "" {
 		return v, nil
 	}
-	return nil, errors.New(fmt.Sprintf("Env var %v not present", envVarName))
-
+	return nil, fmt.Errorf("env var %v not present", envVarName)
 }
 
 func configure() func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {

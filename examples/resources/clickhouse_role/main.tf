@@ -21,5 +21,3 @@ resource "clickhouse_role" "awesome_role" {
   database   = clickhouse_db.awesome_database.name
   privileges = ["INSERT"]
 }
-
-

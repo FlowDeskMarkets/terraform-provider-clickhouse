@@ -3,9 +3,10 @@ package resourcerole
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"strings"
 )
 
 type CHRoleService struct {
@@ -50,7 +51,7 @@ func (rs *CHRoleService) GetRole(ctx context.Context, roleName string) (*CHRole,
 	if err != nil {
 		return nil, fmt.Errorf("error fetching role: %s", err)
 	}
-	if rows.Next() == false {
+	if !rows.Next() {
 		return nil, nil
 	}
 
@@ -90,13 +91,13 @@ func (rs *CHRoleService) UpdateRole(ctx context.Context, rolePlan RoleResource, 
 					found = true
 				}
 			}
-			if found == false {
+			if !found {
 				grantPrivileges = append(grantPrivileges, planPrivilege.(string))
 			}
 		}
 
 		for _, privilege := range chRole.Privileges {
-			if rolePlan.Privileges.Contains(privilege.AccessType) == false {
+			if !rolePlan.Privileges.Contains(privilege.AccessType) {
 				revokePrivileges = append(revokePrivileges, privilege.AccessType)
 			}
 		}

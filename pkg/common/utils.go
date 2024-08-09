@@ -80,9 +80,8 @@ func StringListToSet(list []string) *schema.Set {
 func FormatQuery(ctx context.Context, query string, meta any) string {
 	client := meta.(*ApiClient)
 	conn := client.ClickhouseConnection
-	escapedQuery := strings.ReplaceAll(query, "'", "''")
-	formatQueryStmt := fmt.Sprintf("SELECT formatQuery('%s')", escapedQuery)
-	row := (*conn).QueryRow(ctx, formatQueryStmt)
+	formatQueryStmt := `SELECT formatQuery($1)`
+	row := (*conn).QueryRow(ctx, formatQueryStmt, query)
 
 	var formattedQueryResult string
 	if err := row.Scan(&formattedQueryResult); err != nil {

@@ -74,7 +74,7 @@ func CheckStateSetAttr(attrKey string, resource string, expectedItems []string) 
 		}
 
 		for _, expectedItem := range expectedItems {
-			if set.Contains(expectedItem) == false {
+			if !set.Contains(expectedItem) {
 				return fmt.Errorf("expectedItem %s not found in state", expectedItem)
 			}
 		}

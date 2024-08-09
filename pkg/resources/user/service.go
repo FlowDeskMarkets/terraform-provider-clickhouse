@@ -21,7 +21,7 @@ func (us *CHUserService) GetUser(ctx context.Context, userName string) (*CHUser,
 	if err != nil {
 		return nil, fmt.Errorf("error fetching user: %s", err)
 	}
-	if rows.Next() == false {
+	if !rows.Next() {
 		return nil, nil
 	}
 	var chUser CHUser
@@ -80,13 +80,13 @@ func (us *CHUserService) UpdateUser(ctx context.Context, userPlan UserResource, 
 					found = true
 				}
 			}
-			if found == false {
+			if !found {
 				grantRoles = append(grantRoles, planRole.(string))
 			}
 		}
 
 		for _, role := range user.Roles {
-			if userPlan.Roles.Contains(role) == false {
+			if !userPlan.Roles.Contains(role) {
 				revokeRoles = append(revokeRoles, role)
 			}
 		}

@@ -26,4 +26,3 @@ resource "clickhouse_db" "test_db_clusterd" {
   comment = "This is a clustered test database"
   cluster = "'{cluster}'"
 }
-

@@ -2,9 +2,10 @@ package resourcerole
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"strings"
 )
 
 var AllowedDbLevelPrivileges = []string{
@@ -68,7 +69,7 @@ func validatePrivilege(database string, privilege string, diagnostics *diag.Diag
 			break
 		}
 	}
-	if isAllowed == false {
+	if !isAllowed {
 		diagnostic := diag.Diagnostic{
 			Severity: diag.Error,
 			Summary:  "wrong value",

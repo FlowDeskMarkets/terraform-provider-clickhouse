@@ -4,15 +4,20 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/FlowdeskMarkets/terraform-provider-clickhouse/pkg/common"
 	"github.com/FlowdeskMarkets/terraform-provider-clickhouse/pkg/datasources"
 	"github.com/FlowdeskMarkets/terraform-provider-clickhouse/pkg/resources"
 	"github.com/FlowdeskMarkets/terraform-provider-clickhouse/pkg/sdk"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+const minRetryDelay = 100 * time.Millisecond
 
 func init() {
 	// Set descriptions to support markdown syntax, this will be used in document generation
@@ -28,6 +33,29 @@ func init() {
 	// 	}
 	// 	return strings.TrimSpace(desc)
 	// }
+}
+
+func validateNonNegative(field string) schema.SchemaValidateDiagFunc {
+	return func(i any, path cty.Path) diag.Diagnostics {
+		value, ok := i.(int)
+		if !ok {
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("%s must be an integer", field),
+				AttributePath: path,
+			}}
+		}
+
+		if value < 0 {
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       fmt.Sprintf("%s must be greater than or equal to 0", field),
+				AttributePath: path,
+			}}
+		}
+
+		return nil
+	}
 }
 
 func New(version string) func() *schema.Provider {
@@ -70,6 +98,34 @@ func New(version string) func() *schema.Provider {
 					Optional:    true,
 					Default:     false,
 				},
+				"dial_timeout": {
+					Description:      "Timeout for establishing a connection to ClickHouse (in seconds). Useful for services that may need time to wake up.",
+					Type:             schema.TypeInt,
+					Optional:         true,
+					Default:          30,
+					ValidateDiagFunc: validateNonNegative("dial_timeout"),
+				},
+				"read_timeout": {
+					Description:      "Timeout for reading data from ClickHouse (in seconds).",
+					Type:             schema.TypeInt,
+					Optional:         true,
+					Default:          300,
+					ValidateDiagFunc: validateNonNegative("read_timeout"),
+				},
+				"max_retries": {
+					Description:      "Maximum number of retry attempts when connecting to ClickHouse. Set to 0 to disable retries.",
+					Type:             schema.TypeInt,
+					Optional:         true,
+					Default:          0,
+					ValidateDiagFunc: validateNonNegative("max_retries"),
+				},
+				"retry_delay": {
+					Description:      "Initial delay between retry attempts (in seconds). The delay increases exponentially with each retry.",
+					Type:             schema.TypeInt,
+					Optional:         true,
+					Default:          5,
+					ValidateDiagFunc: validateNonNegative("retry_delay"),
+				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{
 				"clickhouse_dbs": datasources.DataSourceDbs(),
@@ -93,6 +149,10 @@ func configure() func(context.Context, *schema.ResourceData) (any, diag.Diagnost
 		username := d.Get("username").(string)
 		password := d.Get("password").(string)
 		secure := d.Get("secure").(bool)
+		dialTimeout := time.Duration(d.Get("dial_timeout").(int)) * time.Second
+		readTimeout := time.Duration(d.Get("read_timeout").(int)) * time.Second
+		maxRetries := d.Get("max_retries").(int)
+		retryDelay := time.Duration(d.Get("retry_delay").(int)) * time.Second
 
 		var TLSConfig *tls.Config
 		// To use TLS it's necessary to set the TLSConfig field as not nil
@@ -116,7 +176,9 @@ func configure() func(context.Context, *schema.ResourceData) (any, diag.Diagnost
 			Settings: clickhouse.Settings{
 				"max_execution_time": 300,
 			},
-			TLS: TLSConfig,
+			DialTimeout: dialTimeout,
+			ReadTimeout: readTimeout,
+			TLS:         TLSConfig,
 		})
 
 		var diags diag.Diagnostics
@@ -125,10 +187,48 @@ func configure() func(context.Context, *schema.ResourceData) (any, diag.Diagnost
 			return nil, diag.FromErr(fmt.Errorf("error connecting to clickhouse: %v", err))
 		}
 
-		if err := conn.Ping(ctx); err != nil {
+		if err := pingWithRetry(ctx, conn, maxRetries, retryDelay); err != nil {
 			return nil, diag.FromErr(fmt.Errorf("ping clickhouse database: %w", err))
 		}
 
 		return &sdk.Client{Conn: conn}, diags
 	}
+}
+
+type pinger interface {
+	Ping(context.Context) error
+}
+
+// pingWithRetry attempts to ping the ClickHouse connection with exponential backoff retry logic.
+// This is useful for services that may take time to wake up from an idle state.
+func pingWithRetry(ctx context.Context, conn pinger, maxRetries int, retryDelay time.Duration) error {
+	var lastErr error
+	delay := max(retryDelay, minRetryDelay)
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if err := conn.Ping(ctx); err != nil {
+			lastErr = err
+			if attempt < maxRetries {
+				jitter := time.Duration(rand.Int63n(int64(delay/2))) - delay/4
+				sleep := delay + jitter
+
+				timer := time.NewTimer(sleep)
+				select {
+				case <-ctx.Done():
+					timer.Stop()
+					return fmt.Errorf("context cancelled while retrying: %w", ctx.Err())
+				case <-timer.C:
+				}
+
+				delay *= 2
+			}
+		} else {
+			return nil
+		}
+	}
+
+	if maxRetries > 0 {
+		return fmt.Errorf("failed after %d retries: %w", maxRetries, lastErr)
+	}
+	return lastErr
 }

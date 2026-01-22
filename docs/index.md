@@ -3,12 +3,10 @@
 page_title: "clickhouse Provider"
 subcategory: ""
 description: |-
-  
+
 ---
 
 # clickhouse Provider
-
-
 
 ## Example Usage
 
@@ -28,6 +26,11 @@ provider "clickhouse" {
   host     = "127.0.0.1"
   username = "default"
   password = ""
+
+  # Optional: Timeout and retry settings for idle/sleeping services
+  dial_timeout = 60
+  max_retries  = 5
+  retry_delay  = 10
 }
 ```
 
@@ -37,8 +40,12 @@ provider "clickhouse" {
 ### Optional
 
 - `default_cluster` (String) Default cluster, if provided will be used when no cluster is provided
+- `dial_timeout` (Number) Timeout for establishing a connection to ClickHouse (in seconds). Useful for services that may need time to wake up. Defaults to `30`.
 - `host` (String) Clickhouse server URL
+- `max_retries` (Number) Maximum number of retry attempts when connecting to ClickHouse. Set to 0 to disable retries. Defaults to `0`.
 - `password` (String, Sensitive) Clickhouse user password with admin privileges
 - `port` (Number) Clickhouse server native protocol port (TCP)
+- `read_timeout` (Number) Timeout for reading data from ClickHouse (in seconds). Defaults to `300`.
+- `retry_delay` (Number) Initial delay between retry attempts (in seconds). The delay increases exponentially with each retry. Defaults to `5`.
 - `secure` (Boolean) Clickhouse secure connection
 - `username` (String) Clickhouse username with admin privileges

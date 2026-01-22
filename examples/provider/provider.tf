@@ -13,4 +13,9 @@ provider "clickhouse" {
   host     = "127.0.0.1"
   username = "default"
   password = ""
+
+  # Optional: Timeout and retry settings for idle/sleeping services
+  dial_timeout = 60
+  max_retries  = 5
+  retry_delay  = 10
 }

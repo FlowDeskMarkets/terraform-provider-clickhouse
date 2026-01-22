@@ -91,7 +91,7 @@ func UpdateColumns(ctx context.Context, c *Client, table models.TableResource, c
 		{
 			condition: !exists,
 			query:     "ALTER TABLE %s.%s %s ADD COLUMN %s %s %s %s %s %s %s",
-			args:      generateArgs(columnMap["type"], columnMap["default_kind"], columnMap["default_expression"], columnMap["compression_codec"], columnMap["comment"].(string), columnMap["location"]),
+			args:      generateArgs(columnMap["type"], columnMap["default_kind"], columnMap["default_expression"], columnMap["compression_codec"], getComment(columnMap["comment"].(string)), columnMap["location"]),
 		},
 		{
 			condition: exists && columnDiffers(oldColumnMap, columnMap, "type"),
